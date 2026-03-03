@@ -3,117 +3,142 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>田桑 | RE:BUILD</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <title>田桑 | Particle Text</title>
     <style>
         body {
             margin: 0;
-            overflow: hidden;
             background-color: #000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            overflow: hidden;
+            font-family: "Helvetica Neue", Arial, sans-serif;
         }
-        /* メッセージは背後にうっすら配置 */
-        .message {
+
+        canvas {
+            display: block;
+        }
+
+        .footer-message {
             position: fixed;
-            bottom: 10%;
+            bottom: 30px;
             width: 100%;
             text-align: center;
             color: #444;
-            font-family: sans-serif;
-            font-size: 1rem;
+            font-size: 0.9rem;
             letter-spacing: 0.2em;
             pointer-events: none;
+            z-index: 10;
         }
     </style>
 </head>
 <body>
 
-    <div class="message">
+    <canvas id="particleCanvas"></canvas>
+    
+    <div class="footer-message">
         サイトを見てくれてありがとう / よろしくおねがいします
     </div>
 
     <script>
-        let font;
-        let points = [];
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+
         let particles = [];
+        const mouse = { x: 0, y: 0, radius: 80 };
 
-        function setup() {
-            createCanvas(windowWidth, windowHeight);
-            
-            // テキストをドットの集合に変換するための設定
-            // 漢字の形状をドットデータとして抽出（擬似的に計算）
-            let fontSize = 150;
-            let textStr = "田桑";
-            
-            // 粒子を生成（本来はloadFontが必要ですが、標準的な座標で生成します）
-            for (let i = 0; i < 400; i++) {
-                particles.push(new Particle());
-            }
-        }
-
-        function draw() {
-            background(0, 50); // 残像を残す
-
-            for (let p of particles) {
-                p.update();
-                p.show();
-            }
-        }
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.x;
+            mouse.y = e.y;
+        });
 
         class Particle {
-            constructor() {
-                // 初期位置（名前の形に並ぶ目標地点）をランダムに設定
-                this.target = createVector(random(width * 0.3, width * 0.7), random(height * 0.4, height * 0.6));
-                this.pos = createVector(random(width), random(height));
-                this.vel = createVector();
-                this.acc = createVector();
-                this.size = random(2, 5);
-                this.maxSpeed = 10;
-                this.maxForce = 0.5;
+            constructor(x, y, targetX, targetY) {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.targetX = targetX;
+                this.targetY = targetY;
+                this.size = 2;
+                this.baseX = this.x;
+                this.baseY = this.y;
+                this.density = (Math.random() * 30) + 1; // 粒子の重さ（動きの速さ）
+            }
+
+            draw() {
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.closePath();
+                ctx.fill();
             }
 
             update() {
-                let mouse = createVector(mouseX, mouseY);
-                let distToMouse = p5.Vector.dist(mouse, this.pos);
+                // マウスとの距離計算
+                let dx = mouse.x - this.x;
+                let dy = mouse.y - this.y;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+                let forceDirectionX = dx / distance;
+                let forceDirectionY = dy / distance;
+                let maxDistance = mouse.radius;
+                let force = (maxDistance - distance) / maxDistance;
+                let directionX = forceDirectionX * force * this.density;
+                let directionY = forceDirectionY * force * this.density;
 
-                if (distToMouse < 100) {
-                    // マウスが近いと逃げる（バラバラになる）
-                    let flee = p5.Vector.sub(this.pos, mouse);
-                    flee.setMag(this.maxSpeed);
-                    this.applyForce(flee);
+                if (distance < mouse.radius) {
+                    // マウスから逃げる
+                    this.x -= directionX;
+                    this.y -= directionY;
                 } else {
-                    // マウスが遠いと元に戻る（整列する）
-                    let arrive = p5.Vector.sub(this.target, this.pos);
-                    let d = arrive.mag();
-                    let speed = this.maxSpeed;
-                    if (d < 100) speed = map(d, 0, 100, 0, this.maxSpeed);
-                    arrive.setMag(speed);
-                    let steer = p5.Vector.sub(arrive, this.vel);
-                    steer.limit(this.maxForce);
-                    this.applyForce(steer);
+                    // 元の場所（田桑の形）に戻る
+                    if (this.x !== this.targetX) {
+                        let dx = this.x - this.targetX;
+                        this.x -= dx / 10;
+                    }
+                    if (this.y !== this.targetY) {
+                        let dy = this.y - this.targetY;
+                        this.y -= dy / 10;
+                    }
                 }
-
-                this.vel.add(this.acc);
-                this.pos.add(this.vel);
-                this.acc.mult(0);
-            }
-
-            applyForce(f) {
-                this.acc.add(f);
-            }
-
-            show() {
-                stroke(255);
-                strokeWeight(this.size);
-                point(this.pos.x, this.pos.y);
             }
         }
 
-        function windowResized() {
-            resizeCanvas(windowWidth, windowHeight);
+        function init() {
+            particles = [];
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            // 見えないところで一度「田桑」を描画して座標を取得する
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 200px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('田桑', canvas.width / 2, canvas.height / 2 + 70);
+            
+            // 描画されたピクセルデータをスキャン
+            const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 10ピクセルおきに粒子を配置（密度調整）
+            for (let y = 0; y < data.height; y += 8) {
+                for (let x = 0; x < data.width; x += 8) {
+                    if (data.data[(y * 4 * data.width) + (x * 4) + 3] > 128) {
+                        particles.push(new Particle(x, y, x, y));
+                    }
+                }
+            }
         }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].update();
+                particles[i].draw();
+            }
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', () => {
+            init();
+        });
+
+        init();
+        animate();
     </script>
 </body>
 </html>
