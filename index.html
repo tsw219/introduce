@@ -3,169 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TAKUWA // GLITCH</title>
+    <title>田桑 Profile</title>
     <style>
+        /* 基本は白背景・黒文字 */
         body {
             margin: 0;
             height: 100vh;
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
-            background-color: #0d0d0d; /* ダークグレー */
-            color: #f0f0f0; /* 明るいグレー */
-            font-family: 'Consolas', 'Menlo', 'monospace'; /* プログラミング風フォント */
+            background-color: #ffffff;
+            color: #000000;
+            font-family: "Helvetica Neue", Arial, sans-serif;
+            transition: background-color 0.1s, color 0.1s;
             overflow: hidden;
             user-select: none;
         }
 
-        /* 背景の巨大な文字 */
-        .bg-name {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 30vw;
-            font-weight: 900;
-            opacity: 0.05;
-            color: #f0f0f0;
-            z-index: -1;
-            transition: transform 0.3s ease, opacity 0.3s ease;
+        /* 反転時のスタイル */
+        body.inverted {
+            background-color: #000000;
+            color: #ffffff;
         }
 
-        /* 中央のコンテンツ */
         .container {
             text-align: center;
-            z-index: 10;
         }
 
         h1 {
-            font-size: 3.5rem;
-            letter-spacing: 0.1em;
-            margin: 0 0 20px 0;
-            color: #00ff88; /* アクセントカラー */
-            text-shadow: 0 0 5px #00ff88;
+            font-size: 8rem;
+            margin: 0;
+            line-height: 1;
+            transition: transform 0.1s;
         }
 
-        /* 面白いボタン */
-        .glitch-button {
-            padding: 15px 40px;
-            font-size: 1.2rem;
-            background-color: #222;
-            color: #00ff88;
-            border: 2px solid #00ff88;
-            border-radius: 5px;
+        /* 飛び跳ねるアニメーション */
+        .jump {
+            animation: jumpAnim 0.3s ease;
+        }
+
+        @keyframes jumpAnim {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2) translateY(-20px); }
+            100% { transform: scale(1); }
+        }
+
+        /* わかりやすいボタン */
+        .main-button {
+            margin-top: 40px;
+            padding: 15px 50px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            background: none;
+            border: 4px solid currentColor; /* 文字色と同じ色になる */
             cursor: pointer;
-            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
-            transition: all 0.2s ease;
-            position: relative;
-            overflow: hidden;
+            transition: transform 0.1s;
         }
 
-        .glitch-button:hover {
-            background-color: #00ff88;
-            color: #0d0d0d;
-            box-shadow: 0 0 20px rgba(0, 255, 136, 0.8);
+        .main-button:active {
+            transform: scale(0.9);
         }
 
-        .glitch-button:active {
-            transform: translateY(2px);
-            box-shadow: 0 0 5px rgba(0, 255, 136, 0.3);
-        }
-
-        /* グリッチエフェクト */
-        .glitch-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: url("data:image/svg+xml,%3Csvg width='6' height='6' viewBox='0 0 6 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%239C92AC' fill-opacity='0.1' fill-rule='evenodd'%3E%3Cpath d='M0 0h3v3H0V0zm3 3h3v3H3V3z'/%3E%3C/g%3E%3C/svg%3E"); /* 軽いノイズパターン */
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.1s;
-        }
-
-        .glitch-active .glitch-overlay {
-            opacity: 0.3;
-            animation: glitchEffect 0.2s linear forwards;
-        }
-
-        @keyframes glitchEffect {
-            0% { transform: translate(0); }
-            25% { transform: translate(5px, 5px); }
-            50% { transform: translate(-5px, -5px); }
-            75% { transform: translate(3px, -3px); }
-            100% { transform: translate(0); }
-        }
-
-        /* メッセージ */
         .message {
-            margin-top: 25px;
-            font-size: 1.1rem;
-            color: #aaa;
-            opacity: 0;
-            transition: opacity 0.8s ease;
-            max-width: 500px;
+            margin-top: 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            visibility: hidden;
         }
 
         .message.show {
-            opacity: 1;
+            visibility: visible;
         }
     </style>
 </head>
 <body>
 
-    <div class="bg-name" id="bgName">TAKUWA</div>
-
     <div class="container">
-        <h1>田桑</h1>
-        <button class="glitch-button" id="activateBtn">PROCESS</button>
-        <div class="message" id="msg1">サイトを見てくれて、ありがとうございます。</div>
-        <div class="message" id="msg2">よろしくおねがいします。</div>
+        <h1 id="takuwaText">田桑</h1>
+        
+        <button class="main-button" id="toggleBtn">PUSH</button>
+        
+        <div class="message" id="msg">
+            サイトを見てくれてありがとう！<br>
+            よろしくおねがいします
+        </div>
     </div>
 
-    <div class="glitch-overlay" id="glitchOverlay"></div>
-
     <script>
-        const activateBtn = document.getElementById('activateBtn');
-        const bgName = document.getElementById('bgName');
-        const glitchOverlay = document.getElementById('glitchOverlay');
-        const msg1 = document.getElementById('msg1');
-        const msg2 = document.getElementById('msg2');
+        const body = document.body;
+        const btn = document.getElementById('toggleBtn');
+        const takuwa = document.getElementById('takuwaText');
+        const msg = document.getElementById('msg');
+        let count = 0;
 
-        const bgVariations = ["TAKUWA", "T∆KUW∆", "T/\KUW/\"];
-        let clickCount = 0;
+        btn.addEventListener('click', () => {
+            count++;
 
-        activateBtn.addEventListener('click', () => {
-            clickCount++;
+            // 1. 白黒を反転させる
+            body.classList.toggle('inverted');
 
-            // 1. グリッチエフェクト
-            document.body.classList.add('glitch-active');
-            setTimeout(() => {
-                document.body.classList.remove('glitch-active');
-            }, 250); // グリッチ持続時間
+            // 2. 文字を跳ねさせる
+            takuwa.classList.remove('jump');
+            void takuwa.offsetWidth; // アニメーションのリセット
+            takuwa.classList.add('jump');
 
-            // 2. 背景の文字を変形
-            const currentVarIndex = clickCount % bgVariations.length;
-            bgName.innerText = bgVariations[currentVarIndex];
-            
-            // 3. メッセージ表示
-            if (clickCount >= 1) {
-                msg1.classList.add('show');
-            }
-            if (clickCount >= 2) {
-                msg2.classList.add('show');
-            }
-
-            // 4. 最後のメッセージでボタンを非活性化
-            if (clickCount >= 2) {
-                activateBtn.innerText = "COMPLETE";
-                activateBtn.disabled = true;
-                activateBtn.style.opacity = 0.5;
-                activateBtn.style.cursor = 'not-allowed';
+            // 3. 何回か押すとメッセージが出る
+            if (count >= 3) {
+                msg.classList.add('show');
+                btn.innerText = "THANKS";
             }
         });
     </script>
+
 </body>
 </html>
