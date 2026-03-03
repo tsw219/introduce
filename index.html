@@ -3,45 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>田桑の自己紹介</title>
+    <title>田桑の自己紹介 - 収穫祭</title>
     <style>
-        /* 全体のレイアウト設定 */
         body {
-            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
-            background-color: #f4f7f6;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f0f4f0; /* 桑の葉をイメージした薄い緑 */
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             margin: 0;
-            color: #333;
+            overflow: hidden; /* 降ってくる実がはみ出さないように */
+            cursor: pointer;
         }
 
-        /* 自己紹介カードのスタイル */
         .profile-card {
             background: #fff;
             padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            max-width: 400px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            max-width: 350px;
             width: 90%;
             text-align: center;
+            position: relative;
+            z-index: 10;
+            transition: transform 0.3s ease;
         }
 
-        /* 名前部分 */
+        /* ホバーで少し浮く演出 */
+        .profile-card:hover {
+            transform: translateY(-5px);
+        }
+
         h1 {
-            margin: 10px 0;
-            font-size: 24px;
-            color: #2c3e50;
+            margin: 0;
+            font-size: 28px;
+            color: #4a235a; /* 熟した桑の実色 */
         }
 
-        .name-kana {
-            font-size: 14px;
-            color: #7f8c8d;
+        .tagline {
+            font-size: 12px;
+            color: #888;
             margin-bottom: 20px;
         }
 
-        /* 各セクション */
         .section {
             text-align: left;
             margin-top: 20px;
@@ -49,33 +54,23 @@
             padding-top: 15px;
         }
 
-        h2 {
-            font-size: 16px;
-            color: #3498db;
-            margin-bottom: 8px;
+        h2 { font-size: 16px; color: #2ecc71; }
+        p { font-size: 14px; line-height: 1.6; color: #555; }
+
+        /* 落ちてくる実のスタイル */
+        .berry {
+            position: absolute;
+            font-size: 24px;
+            user-select: none;
+            z-index: 5;
+            pointer-events: none;
+            animation: fall linear forwards;
         }
 
-        p {
-            font-size: 14px;
-            line-height: 1.6;
-            margin: 0;
-        }
-
-        /* 趣味などのリスト */
-        ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            font-size: 14px;
-        }
-
-        li {
-            display: inline-block;
-            background: #e1f5fe;
-            padding: 5px 12px;
-            border-radius: 20px;
-            margin: 3px;
-            color: #0288d1;
+        @keyframes fall {
+            to {
+                transform: translateY(110vh) rotate(360deg);
+            }
         }
     </style>
 </head>
@@ -83,27 +78,52 @@
 
     <div class="profile-card">
         <h1>田桑</h1>
-        <div class="name-kana">TAKUWA</div>
+        <div class="tagline">〜 画面をクリックすると何かが実る 〜</div>
 
         <div class="section">
             <h2>自己紹介</h2>
-            <p>はじめまして、田桑です。このページをご覧いただきありがとうございます！現在は〇〇を学んだり、取り組んだりしています。</p>
+            <p>田んぼに桑と書いて「田桑」です。名前負けしないよう、実りのある人生を模索中。</p>
         </div>
 
         <div class="section">
-            <h2>趣味</h2>
-            <ul>
-                <li>読書</li>
-                <li>旅行</li>
-                <li>映画鑑賞</li>
-            </ul>
-        </div>
-
-        <div class="section">
-            <h2>一言</h2>
-            <p>よろしくお願いします！</p>
+            <h2>特技</h2>
+            <p>HTMLの画面をベリー（桑の実）でいっぱいにすること。</p>
         </div>
     </div>
 
+    <script>
+        // クリックしたら実を降らせる処理
+        document.addEventListener('click', (e) => {
+            for (let i = 0; i < 10; i++) {
+                createBerry();
+            }
+        });
+
+        function createBerry() {
+            const berry = document.createElement('div');
+            berry.classList.add('berry');
+            
+            // 桑の実っぽい色合いの絵文字をランダムに
+            const icons = ['🫐', '🟣', '🌿', '✨'];
+            berry.innerText = icons[Math.floor(Math.random() * icons.length)];
+            
+            // 出現位置をランダムに設定
+            berry.style.left = Math.random() * 100 + 'vw';
+            berry.style.top = '-50px';
+            
+            // 落ちるスピードとサイズをランダムに
+            const duration = Math.random() * 2 + 2;
+            berry.style.animationDuration = duration + 's';
+            berry.style.opacity = Math.random();
+            berry.style.fontSize = Math.random() * 20 + 15 + 'px';
+
+            document.body.appendChild(berry);
+
+            // アニメーション終了後に要素を削除
+            setTimeout(() => {
+                berry.remove();
+            }, duration * 1000);
+        }
+    </script>
 </body>
 </html>
