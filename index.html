@@ -3,114 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>田桑のページ</title>
+    <title>田桑の自己紹介</title>
     <style>
-        :root {
-            --bg-color: #fffaf0; /* 柔らかいクリーム色 */
-            --accent-pink: #ffb7c5; /* さくら色 */
-            --accent-blue: #a2d2ff; /* パステルブルー */
-            --text-color: #5d5d5d;
-        }
-
         body {
             margin: 0;
-            padding: 0;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: 'Hiragino Maru Gothic ProN', 'Meiryo', sans-serif;
-            overflow: hidden; /* カーソル追従のためにスクロールは無し */
+            height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            background-color: #fcfafc; /* ほんのりラベンダーがかった白 */
+            font-family: "Helvetica Neue", Arial, "Hiragino Sans", sans-serif;
+            color: #444;
         }
 
-        /* 中央のコンテンツカード */
-        .main-card {
-            background: rgba(255, 255, 255, 0.8);
-            padding: 50px;
-            border-radius: 30px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        .container {
             text-align: center;
-            backdrop-filter: blur(5px);
-            z-index: 10;
-            border: 3px solid var(--accent-pink);
         }
 
-        h1 {
-            font-size: 3rem;
-            margin: 0 0 20px 0;
-            color: #ff8fab;
+        /* 名前の演出：ホバーで色付きの影が出る */
+        .name {
+            font-size: 3.5rem;
+            font-weight: bold;
+            display: inline-block;
+            cursor: default;
+            transition: all 0.4s ease;
+            position: relative;
+            color: #333;
+        }
+
+        .name:hover {
+            transform: translateY(-5px);
+            text-shadow: 
+                4px 4px 0px #ffd1dc,  /* パステルピンク */
+                8px 8px 0px #d0f4de;  /* パステルグリーン */
+        }
+
+        .message-box {
+            margin-top: 30px;
         }
 
         p {
-            font-size: 1.2rem;
-            line-height: 1.8;
+            font-size: 1.1rem;
             margin: 10px 0;
+            letter-spacing: 0.05em;
         }
 
-        .highlight {
-            background: linear-gradient(transparent 60%, var(--accent-blue) 60%);
+        .accent-text {
+            color: #ff9aa2;
             font-weight: bold;
         }
 
-        /* 追いかけてくる文字のスタイル */
-        .follower {
-            position: fixed;
-            pointer-events: none;
-            font-size: 2rem;
-            font-weight: bold;
-            opacity: 0.6;
-            z-index: 5;
-            transition: transform 0.15s ease-out;
+        /* シンプルなライン */
+        .line {
+            width: 40px;
+            height: 2px;
+            background: #eee;
+            margin: 20px auto;
         }
     </style>
 </head>
 <body>
 
-    <div class="follower" id="f1" style="color: var(--accent-pink);">田</div>
-    <div class="follower" id="f2" style="color: var(--accent-blue);">桑</div>
+    <div class="container">
+        <div class="name">田桑</div>
+        
+        <div class="line"></div>
 
-    <div class="main-card">
-        <h1>田桑です！</h1>
-        <p>サイトを見てくれて<span class="highlight">ありがとう！</span></p>
-        <p>のんびり楽しくやってます。</p>
-        <p>これから<span class="highlight">よろしくおねがいします！</span></p>
+        <div class="message-box">
+            <p>サイトを見てくれて<span class="accent-text">ありがとう！</span></p>
+            <p>よろしくおねがいします</p>
+        </div>
     </div>
 
-    <script>
-        const f1 = document.getElementById('f1');
-        const f2 = document.getElementById('f2');
-
-        let mouseX = 0;
-        let mouseY = 0;
-
-        // マウスの動きを取得
-        document.addEventListener('mousemove', (e) => {
-            mouseX = e.clientX;
-            mouseY = e.clientY;
-        });
-
-        // 文字が遅れてついてくるアニメーション
-        function animate() {
-            // 「田」の動き
-            const f1X = mouseX + 30;
-            const f1Y = mouseY - 20;
-            f1.style.left = f1X + 'px';
-            f1.style.top = f1Y + 'px';
-
-            // 「桑」の動き（少しさらに遅れて、違う位置に）
-            setTimeout(() => {
-                const f2X = mouseX - 50;
-                const f2Y = mouseY + 10;
-                f2.style.left = f2X + 'px';
-                f2.style.top = f2Y + 'px';
-            }, 50);
-
-            requestAnimationFrame(animate);
-        }
-
-        animate();
-    </script>
 </body>
 </html>
