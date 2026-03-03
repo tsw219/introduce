@@ -3,131 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>田桑 | Dynamic Particles</title>
+    <title>田桑 | SCROLL</title>
     <style>
         body {
             margin: 0;
+            padding: 0;
             background-color: #000;
-            overflow: hidden;
+            color: #fff;
             font-family: "Helvetica Neue", Arial, sans-serif;
+            overflow-x: hidden;
         }
-        canvas { display: block; }
-        .footer {
-            position: fixed;
-            bottom: 30px;
-            width: 100%;
-            text-align: center;
-            color: #555;
-            font-size: 0.8rem;
-            letter-spacing: 0.3em;
+
+        /* 各セクションの高さ */
+        section {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        /* 巨大な背景文字 */
+        .bg-char {
+            position: absolute;
+            font-size: 60vw;
+            font-weight: 900;
+            color: rgba(255, 255, 255, 0.05);
+            white-space: nowrap;
             pointer-events: none;
+            transition: transform 0.1s ease-out;
+        }
+
+        /* メインのメッセージ */
+        .content {
+            z-index: 10;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 5rem;
+            margin: 0;
+            letter-spacing: 0.2em;
+        }
+
+        p {
+            font-size: 1.5rem;
+            margin-top: 20px;
+            color: #888;
+        }
+
+        /* 下部への誘導線 */
+        .scroll-line {
+            position: absolute;
+            bottom: 20px;
+            width: 1px;
+            height: 80px;
+            background: linear-gradient(to bottom, #fff, transparent);
+            animation: scrollMove 2s infinite;
+        }
+
+        @keyframes scrollMove {
+            0% { transform: translateY(-10px); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: translateY(30px); opacity: 0; }
         }
     </style>
 </head>
 <body>
 
-    <canvas id="canvas"></canvas>
-    <div class="footer">サイトを見てくれてありがとう / よろしくおねがいします</div>
+    <section>
+        <div class="bg-char" id="char-ta" style="left: -10%;">田</div>
+        <div class="content">
+            <h1>田桑</h1>
+        </div>
+        <div class="scroll-line"></div>
+    </section>
+
+    <section>
+        <div class="bg-char" id="char-ku" style="right: -10%;">桑</div>
+        <div class="content">
+            <p>サイトを見てくれて<br>ありがとう！</p>
+        </div>
+    </section>
+
+    <section>
+        <div class="content">
+            <p>よろしくおねがいします</p>
+        </div>
+    </section>
 
     <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
+        window.addEventListener('scroll', () => {
+            const scrollY = window.scrollY;
+            const windowHeight = window.innerHeight;
 
-        let particles = [];
-        const mouse = { x: 0, y: 0, radius: 120 }; // 反応範囲を少し広げました
+            // スクロール量に合わせて背景の文字を横にスライドさせる
+            const charTa = document.getElementById('char-ta');
+            const charKu = document.getElementById('char-ku');
 
-        window.addEventListener('mousemove', (e) => {
-            mouse.x = e.x;
-            mouse.y = e.y;
+            // 「田」は右へ、「桑」は左へ動く
+            charTa.style.transform = `translateX(${scrollY * 0.5}px)`;
+            charKu.style.transform = `translateX(${- (scrollY - windowHeight) * 0.5}px)`;
         });
-
-        class Particle {
-            constructor(x, y) {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * canvas.height;
-                this.destX = x; // 目的地のX
-                this.destY = y; // 目的地のY
-                this.vx = (Math.random() - 0.5) * 10; // 初速X
-                this.vy = (Math.random() - 0.5) * 10; // 初速Y
-                this.accX = 0;
-                this.accY = 0;
-                this.friction = 0.92; // 動きの滑らかさ（摩擦）
-                this.size = Math.random() * 2 + 1;
-            }
-
-            draw() {
-                ctx.fillStyle = '#fff';
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
-            }
-
-            update() {
-                // 1. 本来の場所へ戻ろうとする力
-                this.accX = (this.destX - this.x) * 0.05;
-                this.accY = (this.destY - this.y) * 0.05;
-
-                // 2. マウスから逃げる力
-                let dx = mouse.x - this.x;
-                let dy = mouse.y - this.y;
-                let dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist < mouse.radius) {
-                    let force = (mouse.radius - dist) / mouse.radius;
-                    this.accX -= dx * force * 0.6;
-                    this.accY -= dy * force * 0.6;
-                }
-
-                // 3. 物理計算（速度と摩擦）
-                this.vx += this.accX;
-                this.vy += this.accY;
-                this.vx *= this.friction;
-                this.vy *= this.friction;
-
-                this.x += this.vx;
-                this.y += this.vy;
-            }
-        }
-
-        function init() {
-            particles = [];
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-
-            // フォントサイズを画面サイズに合わせて微調整
-            const fontSize = Math.min(canvas.width / 4, 250);
-            ctx.fillStyle = 'white';
-            ctx.font = `bold ${fontSize}px sans-serif`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('田桑', canvas.width / 2, canvas.height / 2);
-
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // 粒子の密度を少し上げて、より滑らかに
-            const gap = 6;
-            for (let y = 0; y < canvas.height; y += gap) {
-                for (let x = 0; x < canvas.width; x += gap) {
-                    const index = (y * canvas.width + x) * 4;
-                    if (imageData[index + 3] > 128) {
-                        particles.push(new Particle(x, y));
-                    }
-                }
-            }
-        }
-
-        function animate() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            for (let p of particles) {
-                p.update();
-                p.draw();
-            }
-            requestAnimationFrame(animate);
-        }
-
-        window.addEventListener('resize', init);
-        init();
-        animate();
     </script>
 </body>
 </html>
