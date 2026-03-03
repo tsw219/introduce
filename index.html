@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>田桑 | Particle Text</title>
+    <title>田桑 | Dynamic Particles</title>
     <style>
         body {
             margin: 0;
@@ -11,38 +11,30 @@
             overflow: hidden;
             font-family: "Helvetica Neue", Arial, sans-serif;
         }
-
-        canvas {
-            display: block;
-        }
-
-        .footer-message {
+        canvas { display: block; }
+        .footer {
             position: fixed;
             bottom: 30px;
             width: 100%;
             text-align: center;
-            color: #444;
-            font-size: 0.9rem;
-            letter-spacing: 0.2em;
+            color: #555;
+            font-size: 0.8rem;
+            letter-spacing: 0.3em;
             pointer-events: none;
-            z-index: 10;
         }
     </style>
 </head>
 <body>
 
-    <canvas id="particleCanvas"></canvas>
-    
-    <div class="footer-message">
-        サイトを見てくれてありがとう / よろしくおねがいします
-    </div>
+    <canvas id="canvas"></canvas>
+    <div class="footer">サイトを見てくれてありがとう / よろしくおねがいします</div>
 
     <script>
-        const canvas = document.getElementById('particleCanvas');
+        const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
 
         let particles = [];
-        const mouse = { x: 0, y: 0, radius: 80 };
+        const mouse = { x: 0, y: 0, radius: 120 }; // 反応範囲を少し広げました
 
         window.addEventListener('mousemove', (e) => {
             mouse.x = e.x;
@@ -50,52 +42,49 @@
         });
 
         class Particle {
-            constructor(x, y, targetX, targetY) {
+            constructor(x, y) {
                 this.x = Math.random() * canvas.width;
                 this.y = Math.random() * canvas.height;
-                this.targetX = targetX;
-                this.targetY = targetY;
-                this.size = 2;
-                this.baseX = this.x;
-                this.baseY = this.y;
-                this.density = (Math.random() * 30) + 1; // 粒子の重さ（動きの速さ）
+                this.destX = x; // 目的地のX
+                this.destY = y; // 目的地のY
+                this.vx = (Math.random() - 0.5) * 10; // 初速X
+                this.vy = (Math.random() - 0.5) * 10; // 初速Y
+                this.accX = 0;
+                this.accY = 0;
+                this.friction = 0.92; // 動きの滑らかさ（摩擦）
+                this.size = Math.random() * 2 + 1;
             }
 
             draw() {
                 ctx.fillStyle = '#fff';
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.closePath();
                 ctx.fill();
             }
 
             update() {
-                // マウスとの距離計算
+                // 1. 本来の場所へ戻ろうとする力
+                this.accX = (this.destX - this.x) * 0.05;
+                this.accY = (this.destY - this.y) * 0.05;
+
+                // 2. マウスから逃げる力
                 let dx = mouse.x - this.x;
                 let dy = mouse.y - this.y;
-                let distance = Math.sqrt(dx * dx + dy * dy);
-                let forceDirectionX = dx / distance;
-                let forceDirectionY = dy / distance;
-                let maxDistance = mouse.radius;
-                let force = (maxDistance - distance) / maxDistance;
-                let directionX = forceDirectionX * force * this.density;
-                let directionY = forceDirectionY * force * this.density;
-
-                if (distance < mouse.radius) {
-                    // マウスから逃げる
-                    this.x -= directionX;
-                    this.y -= directionY;
-                } else {
-                    // 元の場所（田桑の形）に戻る
-                    if (this.x !== this.targetX) {
-                        let dx = this.x - this.targetX;
-                        this.x -= dx / 10;
-                    }
-                    if (this.y !== this.targetY) {
-                        let dy = this.y - this.targetY;
-                        this.y -= dy / 10;
-                    }
+                let dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < mouse.radius) {
+                    let force = (mouse.radius - dist) / mouse.radius;
+                    this.accX -= dx * force * 0.6;
+                    this.accY -= dy * force * 0.6;
                 }
+
+                // 3. 物理計算（速度と摩擦）
+                this.vx += this.accX;
+                this.vy += this.accY;
+                this.vx *= this.friction;
+                this.vy *= this.friction;
+
+                this.x += this.vx;
+                this.y += this.vy;
             }
         }
 
@@ -104,21 +93,24 @@
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
 
-            // 見えないところで一度「田桑」を描画して座標を取得する
+            // フォントサイズを画面サイズに合わせて微調整
+            const fontSize = Math.min(canvas.width / 4, 250);
             ctx.fillStyle = 'white';
-            ctx.font = 'bold 200px sans-serif';
+            ctx.font = `bold ${fontSize}px sans-serif`;
             ctx.textAlign = 'center';
-            ctx.fillText('田桑', canvas.width / 2, canvas.height / 2 + 70);
-            
-            // 描画されたピクセルデータをスキャン
-            const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            ctx.textBaseline = 'middle';
+            ctx.fillText('田桑', canvas.width / 2, canvas.height / 2);
+
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // 10ピクセルおきに粒子を配置（密度調整）
-            for (let y = 0; y < data.height; y += 8) {
-                for (let x = 0; x < data.width; x += 8) {
-                    if (data.data[(y * 4 * data.width) + (x * 4) + 3] > 128) {
-                        particles.push(new Particle(x, y, x, y));
+            // 粒子の密度を少し上げて、より滑らかに
+            const gap = 6;
+            for (let y = 0; y < canvas.height; y += gap) {
+                for (let x = 0; x < canvas.width; x += gap) {
+                    const index = (y * canvas.width + x) * 4;
+                    if (imageData[index + 3] > 128) {
+                        particles.push(new Particle(x, y));
                     }
                 }
             }
@@ -126,17 +118,14 @@
 
         function animate() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            for (let i = 0; i < particles.length; i++) {
-                particles[i].update();
-                particles[i].draw();
+            for (let p of particles) {
+                p.update();
+                p.draw();
             }
             requestAnimationFrame(animate);
         }
 
-        window.addEventListener('resize', () => {
-            init();
-        });
-
+        window.addEventListener('resize', init);
         init();
         animate();
     </script>
