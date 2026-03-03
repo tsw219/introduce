@@ -3,150 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>田桑 | Trace</title>
+    <title>田桑 | RE:BUILD</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
     <style>
         body {
             margin: 0;
             overflow: hidden;
-            background-color: #000; /* 真っ黒なキャンバス */
-            font-family: "Helvetica Neue", Arial, sans-serif;
-            user-select: none;
-            cursor: crosshair; /* 描画ツールっぽいカーソル */
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
-
-        /* 描画キャンバス */
-        canvas {
-            display: block;
+        /* メッセージは背後にうっすら配置 */
+        .message {
             position: fixed;
-            top: 0;
-            left: 0;
-            z-index: 1;
-        }
-
-        /* 中央のUI（最初は見えない） */
-        .ui-overlay {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+            bottom: 10%;
+            width: 100%;
             text-align: center;
-            color: rgba(255, 255, 255, 0.7);
-            z-index: 10;
-            opacity: 0;
-            transition: opacity 2s ease-out; /* ゆっくりフェードイン */
-            pointer-events: none; /* マウスを透過させる */
-        }
-
-        .ui-overlay.show {
-            opacity: 1;
-        }
-
-        .ui-overlay h1 {
-            font-size: 5rem;
-            margin: 0;
-            letter-spacing: 0.1em;
-            text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
-        }
-
-        .ui-overlay p {
-            font-size: 1.2rem;
-            margin-top: 20px;
-        }
-
-        .instruction {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: rgba(255, 255, 255, 0.4);
-            font-size: 0.9rem;
-            z-index: 5;
-            transition: opacity 1s;
-        }
-
-        .instruction.hide {
-            opacity: 0;
+            color: #444;
+            font-family: sans-serif;
+            font-size: 1rem;
+            letter-spacing: 0.2em;
+            pointer-events: none;
         }
     </style>
 </head>
 <body>
 
-    <canvas id="drawingCanvas"></canvas>
-
-    <div class="ui-overlay" id="uiOverlay">
-        <h1>田桑</h1>
-        <p>サイトを見てくれてありがとう！<br>
-        よろしくおねがいします</p>
+    <div class="message">
+        サイトを見てくれてありがとう / よろしくおねがいします
     </div>
 
-    <div class="instruction" id="instructionText">画面をなぞってみよう...</div>
-
     <script>
-        const canvas = document.getElementById('drawingCanvas');
-        const ctx = canvas.getContext('2d');
-        const uiOverlay = document.getElementById('uiOverlay');
-        const instructionText = document.getElementById('instructionText');
+        let font;
+        let points = [];
+        let particles = [];
 
-        let isDrawing = false;
-        let lastX = 0;
-        let lastY = 0;
-        let fadeOutTimer;
-        let drawCount = 0; // 描画回数でメッセージ表示を制御
-
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)'; // 光の色
-            ctx.lineWidth = 20; // 線の太さ
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            ctx.shadowBlur = 15; // 光のぼかし
-            ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+        function setup() {
+            createCanvas(windowWidth, windowHeight);
+            
+            // テキストをドットの集合に変換するための設定
+            // 漢字の形状をドットデータとして抽出（擬似的に計算）
+            let fontSize = 150;
+            let textStr = "田桑";
+            
+            // 粒子を生成（本来はloadFontが必要ですが、標準的な座標で生成します）
+            for (let i = 0; i < 400; i++) {
+                particles.push(new Particle());
+            }
         }
 
-        function startDrawing(e) {
-            isDrawing = true;
-            [lastX, lastY] = [e.offsetX || e.touches[0].clientX, e.offsetY || e.touches[0].clientY];
-            clearTimeout(fadeOutTimer); // 描画中は消えないように
-            instructionText.classList.add('hide'); // 説明文を消す
+        function draw() {
+            background(0, 50); // 残像を残す
+
+            for (let p of particles) {
+                p.update();
+                p.show();
+            }
         }
 
-        function draw(e) {
-            if (!isDrawing) return;
-
-            drawCount++;
-            if (drawCount > 50) { // ある程度描いたらメッセージ表示
-                uiOverlay.classList.add('show');
+        class Particle {
+            constructor() {
+                // 初期位置（名前の形に並ぶ目標地点）をランダムに設定
+                this.target = createVector(random(width * 0.3, width * 0.7), random(height * 0.4, height * 0.6));
+                this.pos = createVector(random(width), random(height));
+                this.vel = createVector();
+                this.acc = createVector();
+                this.size = random(2, 5);
+                this.maxSpeed = 10;
+                this.maxForce = 0.5;
             }
 
-            ctx.beginPath();
-            ctx.moveTo(lastX, lastY);
-            ctx.lineTo(e.offsetX || e.touches[0].clientX, e.offsetY || e.touches[0].clientY);
-            ctx.stroke();
-            [lastX, lastY] = [e.offsetX || e.touches[0].clientX, e.offsetY || e.touches[0].clientY];
+            update() {
+                let mouse = createVector(mouseX, mouseY);
+                let distToMouse = p5.Vector.dist(mouse, this.pos);
+
+                if (distToMouse < 100) {
+                    // マウスが近いと逃げる（バラバラになる）
+                    let flee = p5.Vector.sub(this.pos, mouse);
+                    flee.setMag(this.maxSpeed);
+                    this.applyForce(flee);
+                } else {
+                    // マウスが遠いと元に戻る（整列する）
+                    let arrive = p5.Vector.sub(this.target, this.pos);
+                    let d = arrive.mag();
+                    let speed = this.maxSpeed;
+                    if (d < 100) speed = map(d, 0, 100, 0, this.maxSpeed);
+                    arrive.setMag(speed);
+                    let steer = p5.Vector.sub(arrive, this.vel);
+                    steer.limit(this.maxForce);
+                    this.applyForce(steer);
+                }
+
+                this.vel.add(this.acc);
+                this.pos.add(this.vel);
+                this.acc.mult(0);
+            }
+
+            applyForce(f) {
+                this.acc.add(f);
+            }
+
+            show() {
+                stroke(255);
+                strokeWeight(this.size);
+                point(this.pos.x, this.pos.y);
+            }
         }
 
-        function stopDrawing() {
-            isDrawing = false;
-            // 描画を止めたらゆっくり消えるように
-            fadeOutTimer = setTimeout(() => {
-                ctx.clearRect(0, 0, canvas.width, canvas.height); // キャンバスをクリア
-            }, 3000); // 3秒後に消える
+        function windowResized() {
+            resizeCanvas(windowWidth, windowHeight);
         }
-
-        // イベントリスナー
-        canvas.addEventListener('mousedown', startDrawing);
-        canvas.addEventListener('mousemove', draw);
-        canvas.addEventListener('mouseup', stopDrawing);
-        canvas.addEventListener('mouseout', stopDrawing);
-
-        // タッチイベント
-        canvas.addEventListener('touchstart', startDrawing);
-        canvas.addEventListener('touchmove', draw);
-        canvas.addEventListener('touchend', stopDrawing);
-
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
     </script>
 </body>
 </html>
