@@ -1,110 +1,427 @@
+```html
 <!DOCTYPE html>
-<html lang="ja">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>田桑 | SCROLL</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #000;
-            color: #fff;
-            font-family: "Helvetica Neue", Arial, sans-serif;
-            overflow-x: hidden;
-        }
+<meta charset="UTF-8">
 
-        /* 各セクションの高さ */
-        section {
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-        }
+<style>
+body{
+margin:0;
+overflow:hidden;
+font-family:Arial;
+background:linear-gradient(#6fd36f,#3ea63e);
+}
 
-        /* 巨大な背景文字 */
-        .bg-char {
-            position: absolute;
-            font-size: 60vw;
-            font-weight: 900;
-            color: rgba(255, 255, 255, 0.05);
-            white-space: nowrap;
-            pointer-events: none;
-            transition: transform 0.1s ease-out;
-        }
+canvas{display:block;}
 
-        /* メインのメッセージ */
-        .content {
-            z-index: 10;
-            text-align: center;
-        }
+#scoreUI{
+position:absolute;
+top:20px;
+left:20px;
+color:white;
+font-size:22px;
+background:rgba(0,0,0,0.4);
+padding:12px 20px;
+border-radius:12px;
+backdrop-filter:blur(6px);
+box-shadow:0 0 10px rgba(0,0,0,0.4);
+}
 
-        h1 {
-            font-size: 5rem;
-            margin: 0;
-            letter-spacing: 0.2em;
-        }
+#menu,#gameOverUI{
+position:absolute;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+background:white;
+padding:35px;
+border-radius:16px;
+text-align:center;
+box-shadow:0 0 30px rgba(0,0,0,0.4);
+max-width:420px;
+}
 
-        p {
-            font-size: 1.5rem;
-            margin-top: 20px;
-            color: #888;
-        }
+#gameOverUI{display:none;}
 
-        /* 下部への誘導線 */
-        .scroll-line {
-            position: absolute;
-            bottom: 20px;
-            width: 1px;
-            height: 80px;
-            background: linear-gradient(to bottom, #fff, transparent);
-            animation: scrollMove 2s infinite;
-        }
+button{
+font-size:18px;
+padding:10px 24px;
+border:none;
+border-radius:10px;
+background:#ffcc00;
+cursor:pointer;
+margin-top:10px;
+}
 
-        @keyframes scrollMove {
-            0% { transform: translateY(-10px); opacity: 0; }
-            50% { opacity: 1; }
-            100% { transform: translateY(30px); opacity: 0; }
-        }
-    </style>
+button:hover{background:#ffd84d;}
+
+#rankingMenu,#rankingGameOver{
+margin-top:12px;
+font-size:16px;
+text-align:left;
+}
+
+</style>
 </head>
+
 <body>
 
-    <section>
-        <div class="bg-char" id="char-ta" style="left: -10%;">田</div>
-        <div class="content">
-            <h1>田桑</h1>
-        </div>
-        <div class="scroll-line"></div>
-    </section>
+<canvas id="game"></canvas>
 
-    <section>
-        <div class="bg-char" id="char-ku" style="right: -10%;">桑</div>
-        <div class="content">
-            <p>サイトを見てくれて<br>ありがとう！</p>
-        </div>
-    </section>
+<div id="scoreUI"></div>
 
-    <section>
-        <div class="content">
-            <p>よろしくおねがいします</p>
-        </div>
-    </section>
+<div id="menu">
 
-    <script>
-        window.addEventListener('scroll', () => {
-            const scrollY = window.scrollY;
-            const windowHeight = window.innerHeight;
+<h2>Coin Survival</h2>
 
-            // スクロール量に合わせて背景の文字を横にスライドさせる
-            const charTa = document.getElementById('char-ta');
-            const charKu = document.getElementById('char-ku');
+<p style="text-align:left">
+矢印キー：移動<br>
+Shift：ダッシュ<br>
+※ダッシュ後しばらく再使用できません<br><br>
 
-            // 「田」は右へ、「桑」は左へ動く
-            charTa.style.transform = `translateX(${scrollY * 0.5}px)`;
-            charKu.style.transform = `translateX(${- (scrollY - windowHeight) * 0.5}px)`;
-        });
-    </script>
+🟡 金コイン = 1点<br>
+⚪ 銀コイン = 3点<br><br>
+
+10コインごとに敵が速くなる
+</p>
+
+<input id="nameInput" placeholder="プレーヤー名（空白OK）">
+<br>
+<button onclick="startGame()">START</button>
+
+<div id="rankingMenu"></div>
+
+</div>
+
+<div id="gameOverUI">
+<h2>GAME OVER</h2>
+<div id="rankingGameOver"></div>
+<button onclick="restartGame()">もう一度</button>
+<button onclick="backToMenu()">最初の画面へ</button>
+</div>
+
+<script>
+
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+
+let w=window.innerWidth;
+let h=window.innerHeight;
+
+canvas.width=w;
+canvas.height=h;
+
+window.onresize=()=>{
+w=window.innerWidth;
+h=window.innerHeight;
+canvas.width=w;
+canvas.height=h;
+}
+
+let player;
+let enemies=[];
+let coins=[];
+
+let score=0;
+let playerName="";
+
+let enemySpeed=1.45;
+
+let dashCooldown=0;
+let dashActive=false;
+let dashTimer=0;
+
+let gameOver=false;
+
+let keys={};
+
+const topSafe=100;
+const margin=30;
+
+let ranking=JSON.parse(localStorage.getItem("coinRanking")||"[]");
+let playerCounter=parseInt(localStorage.getItem("playerCounter")||"1");
+
+document.addEventListener("keydown",e=>keys[e.key]=true);
+document.addEventListener("keyup",e=>keys[e.key]=false);
+
+function startGame(){
+
+let name=document.getElementById("nameInput").value.trim();
+
+if(name===""){
+name="Player"+playerCounter;
+playerCounter++;
+localStorage.setItem("playerCounter",playerCounter);
+}
+
+playerName=name;
+
+player={x:w/2,y:h/2,size:18};
+
+enemies=[];
+coins=[];
+
+score=0;
+enemySpeed=1.45;
+
+dashCooldown=0;
+
+dashActive=false;
+
+document.getElementById("menu").style.display="none";
+document.getElementById("gameOverUI").style.display="none";
+
+spawnCoin();
+}
+
+function restartGame(){
+startGame();
+}
+
+function backToMenu(){
+showMenuRanking();
+document.getElementById("gameOverUI").style.display="none";
+document.getElementById("menu").style.display="block";
+}
+
+function spawnEnemy(){
+
+let fast=Math.random()<0.25;
+let speed=fast?enemySpeed+1:enemySpeed;
+
+let side=Math.floor(Math.random()*4);
+
+let enemy={x:0,y:0,speed:speed,fast:fast};
+
+if(side===0){enemy.x=margin;enemy.y=Math.random()*(h-topSafe)+topSafe;}
+if(side===1){enemy.x=w-margin;enemy.y=Math.random()*(h-topSafe)+topSafe;}
+if(side===2){enemy.x=Math.random()*w;enemy.y=topSafe;}
+if(side===3){enemy.x=Math.random()*w;enemy.y=h-margin;}
+
+for(let e of enemies){
+let dx=e.x-enemy.x;
+let dy=e.y-enemy.y;
+if(Math.sqrt(dx*dx+dy*dy)<30) return;
+}
+
+enemies.push(enemy);
+}
+
+function spawnCoin(){
+
+let rare=Math.random()<0.25;
+
+coins.push({
+x:Math.random()*(w-margin*2)+margin,
+y:Math.random()*(h-topSafe-margin)+topSafe,
+value:rare?3:1,
+size:rare?13:16
+});
+
+}
+
+let enemyTimer=0;
+
+function update(){
+
+if(!player||gameOver) return;
+
+if(keys["Shift"]&&dashCooldown<=0&&!dashActive){
+dashActive=true;
+dashTimer=60;
+dashCooldown=600;
+}
+
+let speed=dashActive?8:4;
+
+if(keys["ArrowUp"])player.y-=speed;
+if(keys["ArrowDown"])player.y+=speed;
+if(keys["ArrowLeft"])player.x-=speed;
+if(keys["ArrowRight"])player.x+=speed;
+
+player.x=Math.max(player.size,Math.min(w-player.size,player.x));
+player.y=Math.max(player.size,Math.min(h-player.size,player.y));
+
+if(dashActive){
+dashTimer--;
+if(dashTimer<=0) dashActive=false;
+}
+
+if(dashCooldown>0) dashCooldown--;
+
+enemyTimer++;
+
+if(enemyTimer>65){spawnEnemy();enemyTimer=0;}
+
+for(let enemy of enemies){
+
+let dx=player.x-enemy.x;
+let dy=player.y-enemy.y;
+
+let dist=Math.sqrt(dx*dx+dy*dy);
+
+enemy.x+=dx/dist*enemy.speed;
+enemy.y+=dy/dist*enemy.speed;
+
+if(dist<22){finishGame();}
+
+}
+
+for(let i=coins.length-1;i>=0;i--){
+
+let c=coins[i];
+
+let dx=player.x-c.x;
+let dy=player.y-c.y;
+
+let dist=Math.sqrt(dx*dx+dy*dy);
+
+if(dist<22){
+
+score+=c.value;
+coins.splice(i,1);
+spawnCoin();
+
+if(score%10===0){
+
+enemySpeed+=0.35;
+for(let e of enemies){e.speed+=0.35;}
+
+}
+
+}
+
+}
+
+}
+
+function finishGame(){
+
+gameOver=true;
+
+updateRanking();
+showGameOverRanking();
+
+document.getElementById("gameOverUI").style.display="block";
+
+}
+
+function updateRanking(){
+
+let existing=ranking.find(r=>r.name===playerName);
+
+if(existing){
+if(score>existing.score) existing.score=score;
+}else{
+ranking.push({name:playerName,score:score});
+}
+
+ranking.sort((a,b)=>b.score-a.score);
+
+localStorage.setItem("coinRanking",JSON.stringify(ranking));
+
+}
+
+function showMenuRanking(){
+
+ranking=JSON.parse(localStorage.getItem("coinRanking")||"[]");
+
+let top=ranking.slice(0,5);
+
+let html="<h3>🏆 Top5</h3>";
+
+top.forEach((r,i)=>{
+html+=`${i+1}. ${r.name} - ${r.score}<br>`;
+});
+
+document.getElementById("rankingMenu").innerHTML=html;
+
+}
+
+function showGameOverRanking(){
+
+let html="<h3>ランキング</h3>";
+
+ranking.forEach((r,i)=>{
+html+=`${i+1}. ${r.name} - ${r.score}<br>`;
+});
+
+html+=`<br><b>${playerName} のスコア: ${score}</b>`;
+
+
+document.getElementById("rankingGameOver").innerHTML=html;
+
+}
+
+function drawPlayer(){
+
+ctx.fillStyle="#2f7df6";
+ctx.beginPath();
+ctx.arc(player.x,player.y,18,0,Math.PI*2);
+ctx.fill();
+
+ctx.fillStyle="white";
+ctx.beginPath();
+ctx.arc(player.x-6,player.y-4,4,0,Math.PI*2);
+ctx.arc(player.x+6,player.y-4,4,0,Math.PI*2);
+ctx.fill();
+
+}
+
+function draw(){
+
+ctx.clearRect(0,0,w,h);
+
+if(!player) return;
+
+for(let c of coins){
+ctx.fillStyle=c.value==3?"silver":"gold";
+ctx.beginPath();
+ctx.arc(c.x,c.y,c.size,0,Math.PI*2);
+ctx.fill();
+}
+
+for(let e of enemies){
+
+ctx.fillStyle=e.fast?"purple":"red";
+ctx.beginPath();
+ctx.arc(e.x,e.y,12,0,Math.PI*2);
+ctx.fill();
+
+ctx.fillStyle="white";
+ctx.beginPath();
+ctx.arc(e.x-4,e.y-3,3,0,Math.PI*2);
+ctx.arc(e.x+4,e.y-3,3,0,Math.PI*2);
+ctx.fill();
+
+ctx.fillStyle="black";
+ctx.beginPath();
+ctx.arc(e.x-4,e.y-3,1.5,0,Math.PI*2);
+ctx.arc(e.x+4,e.y-3,1.5,0,Math.PI*2);
+ctx.fill();
+
+}
+
+
+drawPlayer();
+
+
+document.getElementById("scoreUI").innerHTML=
+"⭐ Score: "+score+
+"<br>⚡ Dash: "+(dashCooldown>0?Math.ceil(dashCooldown/60)+"s":"Ready");
+
+}
+
+function loop(){
+update();
+draw();
+requestAnimationFrame(loop);
+}
+
+showMenuRanking();
+loop();
+
+</script>
+
 </body>
 </html>
+```
